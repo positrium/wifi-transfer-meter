@@ -84,11 +84,11 @@ percentage = usage / 10.00 * 100
 sign = ""
 
 if percentage >= 90.00
-	sign = "🔴"
+	sign = ":broken_heart:"
 elsif percentage >= 70.00
-	sign = "💛"
+	sign = ":yellow_heart:"
 else
-	sign = "💚"
+	sign = ":green_heart:"
 end
 
 puts "#{sign}#{a.today_data_usage[:usage]}#{a.today_data_usage[:label]}"
