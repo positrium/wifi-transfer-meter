@@ -2,6 +2,7 @@
 
 ## require
 
+- [bitbar](https://getbitbar.com/)
 - ruby : 2.6
 - ruby gem : nokogiri
 - perhaps : Speed WiFi Next W06 setting tool
