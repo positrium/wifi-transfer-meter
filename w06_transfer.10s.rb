@@ -12,83 +12,115 @@ require 'nokogiri'
 class TransferAmount
 	def initialize
 		@doc = Nokogiri.HTML(open("http://speedwifi-next.home/api/monitoring/statistics_3days"))
+
+		@scale = {
+			kb: 1024,
+			mb: 1024 * 1024,
+			gb: 1024 * 1024 * 1024,
+			tb: 1024 * 1024 * 1024 * 1024
+		}
+		@scale.freeze
+
+		@payload = {
+			yesterday_download: -99,
+			yesterday_upload: -99,
+			yesterday_duration: -99,
+			today_download: -99,
+			today_upload: -99,
+			today_duration: -99,
+			is_yesterday_flux_over_limit: -99,
+			last_clear_time_3days: -99
+		}
+
+		@doc.xpath('//response/*').each do |e|
+			case e.name
+			when 'toyestodaydownload'
+				@payload[:yesterday_download] = e.children[0].text
+			when 'toyestodayupload'
+				@payload[:yesterday_upload] = e.children[0].text
+			when 'toyestodayduration'
+				@payload[:yesterday_duration] = e.children[0].text
+			when 'totodaydownload'
+				@payload[:today_download] = e.children[0].text
+			when 'totodayupload'
+				@payload[:today_upload] = e.children[0].text
+			when 'totodayduration'
+				@payload[:today_duration] = e.children[0].text
+			when 'isyestodayfluxoverlimit'
+				@payload[:is_yesterday_flux_over_limit] = e.children[0].text
+			when 'lastcleartime3days'
+				@payload[:last_clear_time_3days] = e.children[0].text
+			end
+		end
+		@payload.freeze
 	end
 
 	def yesterday_data_usage
-		# <?xml version="1.0" encoding="UTF-8"?>
-		# <response>
-		#   <ToYestodayDownload>2741729576</ToYestodayDownload>
-		#   <ToYestodayUpload>352561768</ToYestodayUpload>
-		#   <ToYestodayDuration>258809</ToYestodayDuration>
-		#   <ToTodayDownload>4785240748</ToTodayDownload>
-		#   <ToTodayUpload>862668626</ToTodayUpload>
-		#   <ToTodayDuration>223665</ToTodayDuration>
-		#   <IsYestodayFluxOverLimit>0</IsYestodayFluxOverLimit>
-		#   <LastClearTime3days>2012-1-1</LastClearTime3days>
-		# </response>
+		yesterday_data = @payload[:yesterday_download].to_i(10) + @payload[:yesterday_upload].to_i(10)
+
+		scale = transfer_scale(yesterday_data)
+		yesterday_usage = ( yesterday_data.to_f / scale[:size] ).round(2)
+
+		{amount: yesterday_usage, label: scale[:label], percentage: yesterday_usage / 10.00 * 100}
 	end
 
 	def today_data_usage
-		today_download = 0
-		today_upload = 0
-
-		@doc.xpath('//response/totodaydownload').each do |e|
-			today_download = e.content.to_i(10)
-		end
-
-		@doc.xpath('//response/totodayupload').each do |e|
-			today_upload = e.content.to_i(10)
-		end
-
-		today_data = today_download + today_upload
+		today_data = @payload[:today_download].to_i(10) + @payload[:today_upload].to_i(10)
 
 		scale = transfer_scale(today_data)
-		today_usage = today_data.to_f / scale[:size]
+		today_usage = ( today_data.to_f / scale[:size] ).round(2)
 
-		{usage: today_usage.round(2), label: scale[:label]}
+		{amount: today_usage, label: scale[:label], percentage: today_usage / 10.00 * 100}
+	end
+
+	def limited?
+		limited = @payload[:is_yesterday_flux_over_limit].to_i
+
+		false if limited == 0
+		true if limited != 0
 	end
 
 	private
 
 	def transfer_scale(byte)
-		scale_kb = 1024
-		scale_mb = 1024 * 1024
-		scale_gb = 1024 * 1024 * 1024
-		scale_tb = 1024 * 1024 * 1024 * 1024
+		scale_info = {size: 0, label: ''}
 
-		scale = {size: 0, label: ''}
-
-		if scale_mb > byte
-			scale[:size] = scale_kb
-			scale[:label] = 'KB'
-		elsif scale_gb > byte
-			scale[:size] = scale_mb
-			scale[:label] = 'MB'
-		elsif scale_tb > byte
-			scale[:size] = scale_gb
-			scale[:label] = 'GB'
+		if @scale[:mb] > byte
+			scale_info[:size] = @scale[:kb]
+			scale_info[:label] = 'KB'
+		elsif @scale[:gb] > byte
+			scale_info[:size] = @scale[:mb]
+			scale_info[:label] = 'MB'
+		elsif @scale[:tb] > byte
+			scale_info[:size] = @scale[:gb]
+			scale_info[:label] = 'GB'
 		else
-			scale[:size] = scale_tb
-			scale[:label] = 'TB'
+			scale_info[:size] = @scale[:tb]
+			scale_info[:label] = 'TB'
 		end
 
-		scale
+		scale_info
 	end
 
 end
 
 
 a = TransferAmount.new
-usage = a.today_data_usage[:usage]
-percentage = usage / 10.00 * 100
+usage = a.today_data_usage
 sign = ""
 
-if percentage >= 90.00
+if usage[:percentage] >= 90.00 || a.limited?
 	sign = ":broken_heart:"
-elsif percentage >= 70.00
+elsif usage[:percentage] >= 70.00
 	sign = ":yellow_heart:"
 else
 	sign = ":green_heart:"
 end
 
-puts "#{sign}#{a.today_data_usage[:usage]}#{a.today_data_usage[:label]}"
+puts "#{sign}#{usage[:amount]}#{usage[:label]}"
+
+puts "---"
+
+y_usage = a.yesterday_data_usage
+
+puts "yesterday: #{y_usage[:amount]}#{y_usage[:label]}"
