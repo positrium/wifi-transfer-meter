@@ -11,7 +11,6 @@ require 'nokogiri'
 
 class TransferAmount
 	def initialize
-		@doc = Nokogiri.HTML(open("http://speedwifi-next.home/api/monitoring/statistics_3days"))
 
 		@scale = {
 			kb: 1024,
@@ -22,16 +21,17 @@ class TransferAmount
 		@scale.freeze
 
 		@payload = {
-			yesterday_download: -99,
-			yesterday_upload: -99,
-			yesterday_duration: -99,
-			today_download: -99,
-			today_upload: -99,
-			today_duration: -99,
-			is_yesterday_flux_over_limit: -99,
-			last_clear_time_3days: -99
+			yesterday_download: -9,
+			yesterday_upload: -9,
+			yesterday_duration: -9,
+			today_download: -9,
+			today_upload: -9,
+			today_duration: -9,
+			is_yesterday_flux_over_limit: -9,
+			last_clear_time_3days: -9
 		}
 
+		@doc = Nokogiri.HTML(open("http://speedwifi-next.home/api/monitoring/statistics_3days"))
 		@doc.xpath('//response/*').each do |e|
 			case e.name
 			when 'toyestodaydownload'
@@ -53,10 +53,12 @@ class TransferAmount
 			end
 		end
 		@payload.freeze
+	rescue => error
+		#puts error.message
 	end
 
 	def yesterday_data_usage
-		yesterday_data = @payload[:yesterday_download].to_i(10) + @payload[:yesterday_upload].to_i(10)
+		yesterday_data = @payload[:yesterday_download].to_i + @payload[:yesterday_upload].to_i
 
 		scale = transfer_scale(yesterday_data)
 		yesterday_usage = ( yesterday_data.to_f / scale[:size] ).round(2)
@@ -65,7 +67,7 @@ class TransferAmount
 	end
 
 	def today_data_usage
-		today_data = @payload[:today_download].to_i(10) + @payload[:today_upload].to_i(10)
+		today_data = @payload[:today_download].to_i + @payload[:today_upload].to_i
 
 		scale = transfer_scale(today_data)
 		today_usage = ( today_data.to_f / scale[:size] ).round(2)
@@ -117,10 +119,14 @@ else
 	sign = ":green_heart:"
 end
 
-puts "#{sign}#{y_usage[:amount]}#{y_usage[:label]}"
+if y_usage[:amount] > 0
+	puts "#{sign}#{y_usage[:amount]}#{y_usage[:label]}"
 
-puts "---"
+	puts "---"
 
-usage = a.today_data_usage
+	usage = a.today_data_usage
 
-puts "today: #{usage[:amount]}#{usage[:label]}"
+	puts "today: #{usage[:amount]}#{usage[:label]}"
+else
+	puts "<!> connect to w06"
+end
