@@ -11,6 +11,7 @@ require 'nokogiri'
 
 class TransferAmount
 	def initialize
+		@has_error = false
 
 		@scale = {
 			kb: 1024,
@@ -54,7 +55,7 @@ class TransferAmount
 		end
 		@payload.freeze
 	rescue => error
-		#puts error.message
+		@has_error = true
 	end
 
 	def yesterday_data_usage
@@ -80,6 +81,10 @@ class TransferAmount
 
 		false if limited == 0
 		true if limited != 0
+	end
+
+	def has_error?
+		@has_error
 	end
 
 	private
@@ -108,25 +113,45 @@ end
 
 
 a = TransferAmount.new
-y_usage = a.yesterday_data_usage
-sign = ""
 
-if y_usage[:percentage] >= 90.00 || a.limited?
-	sign = ":broken_heart:"
-elsif y_usage[:percentage] >= 70.00
-	sign = ":yellow_heart:"
+if a.has_error?
+	puts "<!> connect to w06"
 else
-	sign = ":green_heart:"
-end
+	usage = a.today_data_usage
+	y_usage = a.yesterday_data_usage
+	sign = ""
+	left_value = ""
 
-if y_usage[:amount] > 0
-	puts "#{sign}#{y_usage[:amount]}#{y_usage[:label]}"
+	if usage[:percentage] >= 33.00
+		sign = ":broken_heart:"
+	elsif usage[:percentage] >= 23.10
+		sign = ":yellow_heart:"
+		left_value = "(#{(3.33-usage[:amount]).round(2)}GB left)"
+	else
+		sign = ":green_heart:"
+		left_value = "(#{(2.31-usage[:amount]).round(2)}GB left)"
+	end
 
+	if a.limited?
+		sign = ":children_crossing:"
+	end
+
+	puts "#{sign}#{usage[:amount]}#{usage[:label]} #{left_value}" # 3 days until today
+	puts "---"
+	puts "usage"
+	puts "--limited now is :children_crossing:"
+	puts "--over 3.33GB is :broken_heart:"
+	puts "--over 2.31GB is :yellow_heart:"
+	puts "--under 2.31GB is :green_heart:"
+	puts "admin|href=http://speedwifi-next.home"
 	puts "---"
 
-	usage = a.today_data_usage
-
-	puts "today: #{usage[:amount]}#{usage[:label]}"
-else
-	puts "<!> connect to w06"
+	if a.limited?
+		puts "limited now|color=red"
+	elsif y_usage[:percentage] >= 66.00
+		puts "WARNING !|color=#333"
+	end
+	if y_usage[:percentage] >= 66.00
+		puts "--until yesterday: #{y_usage[:amount]}#{y_usage[:label]}|color=#333" # 3 days until yesterday
+	end
 end
