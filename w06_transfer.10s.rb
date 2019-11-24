@@ -106,21 +106,21 @@ end
 
 
 a = TransferAmount.new
-usage = a.today_data_usage
+y_usage = a.yesterday_data_usage
 sign = ""
 
-if usage[:percentage] >= 90.00 || a.limited?
+if y_usage[:percentage] >= 90.00 || a.limited?
 	sign = ":broken_heart:"
-elsif usage[:percentage] >= 70.00
+elsif y_usage[:percentage] >= 70.00
 	sign = ":yellow_heart:"
 else
 	sign = ":green_heart:"
 end
 
-puts "#{sign}#{usage[:amount]}#{usage[:label]}"
+puts "#{sign}#{y_usage[:amount]}#{y_usage[:label]}"
 
 puts "---"
 
-y_usage = a.yesterday_data_usage
+usage = a.today_data_usage
 
-puts "yesterday: #{y_usage[:amount]}#{y_usage[:label]}"
+puts "today: #{usage[:amount]}#{usage[:label]}"
