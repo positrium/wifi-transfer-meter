@@ -14,7 +14,7 @@
 - [sign] < left value > ( < until today usage > )
 - until today usage
     - [sign] < until today usage >
-    - :children_crossing: restricted now
+    - :no_entry_sign: restricted now
     - :broken_heart: over 3.33GB
     - :yellow_heart: over 2.31GB
     - :green_heart: less 2.31GB
