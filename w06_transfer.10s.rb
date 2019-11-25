@@ -119,7 +119,7 @@ class WarningDetector
 	attr_reader :sign, :amount
 
 	def initialize(amount, percentage, symbols={over: "x", warn: "!", ok: "o", limited: "-"}, limited=false)
-		@amount = amount
+		@amount = amount.round(2)
 		@percentage = percentage
 		@symbols = symbols
 		@limited = limited
@@ -153,6 +153,24 @@ class WarningDetector
 		end
 
 		@sign = @symbols[@status]
+		@status
+	end
+
+	def old_status
+		@status = :ok
+
+		if @percentage >= 33.00
+			@status = :over
+		elsif @percentage >= 23.10
+			@status = :warn
+		end
+
+		if @limited
+			@sign = @symbols[:limited]
+		else
+			@sign = @symbols[@status]
+		end
+
 		@status
 	end
 
@@ -194,22 +212,33 @@ else
 	wc.today_status
 
 	y_usage = a.yesterday_data_usage
-	wt = WarningDetector.new(y_usage[:amount], y_usage[:percentage], symbols, a.limited?)
+	wt = WarningDetector.new(y_usage[:amount], y_usage[:percentage], symbols, false)
 	wt.total_status
+
+	wo = WarningDetector.new(y_usage[:amount]-usage[:amount], y_usage[:percentage]-usage[:percentage], symbols, false)
+	wo.old_status
 
 	puts "#{wc.sign}#{wc.today_left_value}MB(#{wc.amount}#{usage[:label]})" # today
 	puts "---"
-	puts "admin|href=http://speedwifi-next.home"
+	puts "admin page|href=http://speedwifi-next.home"
+	puts "hardware page|href=https://www.uqwimax.jp/wimax/products/w06/"
 	puts "---"
-	puts "today usage"
+	puts "until today usage"
 	puts "#{wc.sign}#{wc.amount}#{usage[:label]}"
 	puts "--:children_crossing: restricted now"
 	puts "--:broken_heart: over 3.33GB (100%)"
 	puts "--:yellow_heart: over 2.31GB ( 70%)"
 	puts "--:green_heart: less 2.31GB"
-	puts "yesterday usage"
+	puts "--today + 1 day ago + 2 days ago"
+	puts "until yesterday usage"
 	puts "#{wt.sign}#{wt.amount}#{y_usage[:label]}"
 	puts "--:broken_heart: over 10GB (100%)"
 	puts "--:yellow_heart: over  7GB ( 70%)"
 	puts "--:green_heart: less  7GB"
+	puts "--1 day ago + 2 days ago + 3 days ago"
+	puts "3 days ago"
+	puts "#{wo.sign}#{wo.amount}GB"
+	puts "--:broken_heart: over 3.33GB (100%)"
+	puts "--:yellow_heart: over 2.31GB ( 70%)"
+	puts "--:green_heart: less 2.31GB"
 end
