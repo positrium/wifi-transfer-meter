@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# <bitbar.title>Speedwifi-next W06 transfer amount during 3days</bitbar.title>
+# <bitbar.title>Speedwifi-next W06 transfer amount during 1day</bitbar.title>
 # <bitbar.author>positrium</bitbar.author>
 # <bitbar.author.github>positrium</bitbar.author.github>
 # <bitbar.version>1.0</bitbar.version>
