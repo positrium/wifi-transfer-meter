@@ -11,7 +11,7 @@
 
 ![image](image2.png)
 
-- [sign] <left value> ( < until today usage > )
+- [sign] < left value > ( < until today usage > )
 - until today usage
     - [sign] < until today usage >
     - :children_crossing: restricted now
