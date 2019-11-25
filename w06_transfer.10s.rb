@@ -204,7 +204,7 @@ if a.has_error?
 	puts "<!> connect to w06"
 
 else
-	symbols = {over: ":broken_heart:", warn: ":yellow_heart:", ok: ":green_heart:", limited: ":children_crossing:"}
+	symbols = {over: ":broken_heart:", warn: ":yellow_heart:", ok: ":green_heart:", limited: ":no_entry_sign:"}
 	symbols.freeze
 
 	usage = a.today_data_usage
