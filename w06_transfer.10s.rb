@@ -87,9 +87,13 @@ class TransferAmount
 		@has_error
 	end
 
+	def scale_down(value)
+		value * 1024
+	end
+
 	private
 
-	def transfer_scale(byte)
+	def transfer_scale(byte, limit='TB')
 		scale_info = {size: 0, label: ''}
 
 		if @scale[:mb] > byte
@@ -111,47 +115,101 @@ class TransferAmount
 
 end
 
+class WarningDetector
+	attr_reader :sign, :amount
+
+	def initialize(amount, percentage, symbols={over: "x", warn: "!", ok: "o", limited: "-"}, limited=false)
+		@amount = amount
+		@percentage = percentage
+		@symbols = symbols
+		@limited = limited
+	end
+
+	def today_status
+		@status = :ok
+
+		if @percentage >= 33.00
+			@status = :over
+		elsif @percentage >= 23.10
+			@status = :warn
+		end
+
+		if @limited
+			@sign = @symbols[:limited]
+		else
+			@sign = @symbols[@status]
+		end
+
+		@status
+	end
+
+	def total_status
+		@status = :ok
+
+		if @percentage >= 100.00
+			@status = :over
+		elsif @percentage >= 70.00
+			@status = :warn
+		end
+
+		@sign = @symbols[@status]
+		@status
+	end
+
+	def today_left_value
+		value = 0
+
+		case @status
+		when :warn
+			value = scale_down(3.33-@amount).round(2)
+			value = value.round
+		when :ok
+			value = scale_down(2.31-@amount).round(2)
+			value = value.round
+		end
+
+		value = 0 if value < 1
+
+		value
+	end
+
+	private
+
+	def scale_down(n)
+		n * 1024
+	end
+end
 
 a = TransferAmount.new
 
 if a.has_error?
 	puts "<!> connect to w06"
+
 else
+	symbols = {over: ":broken_heart:", warn: ":yellow_heart:", ok: ":green_heart:", limited: ":children_crossing:"}
+	symbols.freeze
+
 	usage = a.today_data_usage
+	wc = WarningDetector.new(usage[:amount], usage[:percentage], symbols, a.limited?)
+	wc.today_status
+
 	y_usage = a.yesterday_data_usage
-	sign = ""
-	left_value = ""
+	wt = WarningDetector.new(y_usage[:amount], y_usage[:percentage], symbols, a.limited?)
+	wt.total_status
 
-	if usage[:percentage] >= 33.00
-		sign = ":broken_heart:"
-	elsif usage[:percentage] >= 23.10
-		sign = ":yellow_heart:"
-		left_value = "(#{(3.33-usage[:amount]).round(2)}GB left)"
-	else
-		sign = ":green_heart:"
-		left_value = "(#{(2.31-usage[:amount]).round(2)}GB left)"
-	end
-
-	if a.limited?
-		sign = ":children_crossing:"
-	end
-
-	puts "#{sign}#{usage[:amount]}#{usage[:label]} #{left_value}" # 3 days until today
+	puts "#{wc.sign}#{wc.today_left_value}MB(#{wc.amount}#{usage[:label]})" # today
 	puts "---"
-	puts "usage"
-	puts "--limited now is :children_crossing:"
-	puts "--over 3.33GB is :broken_heart:"
-	puts "--over 2.31GB is :yellow_heart:"
-	puts "--under 2.31GB is :green_heart:"
 	puts "admin|href=http://speedwifi-next.home"
 	puts "---"
-
-	if a.limited?
-		puts "limited now|color=red"
-	elsif y_usage[:percentage] >= 66.00
-		puts "WARNING !|color=#333"
-	end
-	if y_usage[:percentage] >= 66.00
-		puts "--until yesterday: #{y_usage[:amount]}#{y_usage[:label]}|color=#333" # 3 days until yesterday
-	end
+	puts "today usage"
+	puts "#{wc.sign}#{wc.amount}#{usage[:label]}"
+	puts "--:children_crossing: restricted now"
+	puts "--:broken_heart: over 3.33GB (100%)"
+	puts "--:yellow_heart: over 2.31GB ( 70%)"
+	puts "--:green_heart: less 2.31GB"
+	puts "yesterday usage"
+	puts "#{wt.sign}#{wt.amount}#{y_usage[:label]}"
+	puts "--:broken_heart: over 10GB (100%)"
+	puts "--:yellow_heart: over  7GB ( 70%)"
+	puts "--:green_heart: less  7GB"
 end
