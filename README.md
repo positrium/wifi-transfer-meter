@@ -12,14 +12,14 @@
 - [sign] < left value > ( < until today usage > )
 - until today usage
     - [sign] < until today usage >
-    - :no_entry_sign: restricted now
-    - :broken_heart: over 10GB
-    - :yellow_heart: over  7GB
-    - :green_heart: less  7GB
-    - today + 1 day ago + 2 days ago
+        - :no_entry_sign: restricted now
+        - :broken_heart: over 10GB
+        - :yellow_heart: over  7GB
+        - :green_heart: less  7GB
+        - today + 1 day ago + 2 days ago
 - until yesterday usage
     - [sign] < until yesterday usage >
-    - :broken_heart: over 10GB
-    - :yellow_heart: over  7GB
-    - :green_heart: less  7GB
-    - 1 day ago + 2 days ago + 3 days ago
+        - :broken_heart: over 10GB
+        - :yellow_heart: over  7GB
+        - :green_heart: less  7GB
+        - 1 day ago + 2 days ago + 3 days ago
