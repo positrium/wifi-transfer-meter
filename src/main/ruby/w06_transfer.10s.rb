@@ -28,7 +28,7 @@ class TransferState
 			last_clear_time_3days: -9
 		}
 
-		@doc = Nokogiri.HTML(URI.open(url))
+		@doc = Nokogiri.HTML(open(url))
 		@doc.xpath('//response/*').each do |e|
 			case e.name
 			when 'toyestodaydownload'
