@@ -122,7 +122,7 @@ class ViewState
 
 	def detect_scale(byte)
 		info = {size: 0, label: ''}
- 
+
 		if @scale[:gb] > byte
 			info = {size: (byte/@scale[:mb].to_f).floor(2), label: 'MB'}
 		elsif @scale[:tb] > byte
