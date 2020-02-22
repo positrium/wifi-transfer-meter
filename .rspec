@@ -1,0 +1,2 @@
+--require ./src/test/ruby/spec_helper.rb
+--default-path src/test/ruby
