@@ -39,7 +39,7 @@ RSpec.describe TransferState do
     end
 
     describe '#limited?' do
-        context 'connect limited' do
+        context 'connection limited' do
             it 'output true' do
                 amount = TransferState.new('http://www.example.com/')
                 expect(amount.limited?).to eq true

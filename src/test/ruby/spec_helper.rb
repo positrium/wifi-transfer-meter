@@ -99,4 +99,4 @@ RSpec.configure do |config|
 
 end
 
-Dir.glob(File.join(File.dirname(__FILE__), "../../main/ruby/*.rb")).each { |f| require f }
+Dir.glob(File.join(File.dirname(__FILE__), "../../main/ruby/w06/*.rb")).each { |f| require f }
