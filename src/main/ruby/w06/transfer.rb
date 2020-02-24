@@ -55,8 +55,7 @@ class TransferState
     def limited?
         limited = @payload[:is_yesterday_flux_over_limit].to_i
 
-        false if limited == 0
-        true if limited != 0
+        limited == 0 ? false : true
     end
 
     def has_error?
@@ -65,32 +64,33 @@ class TransferState
 end
 
 class ViewState
+    MAX_USAGE = 1024*1024*1024*10
+    WARN_USAGE = 1024*1024*1024*7
+    SCALE = {
+        mb: 1024 * 1024,
+        gb: 1024 * 1024 * 1024,
+        tb: 1024 * 1024 * 1024 * 1024
+    }
 
-    def initialize(usage, symbols={over: "x", warn: "!", ok: "o", limited: "-"}, limited=false)
-        @usage = usage.freeze
-        @percentage = ((usage.to_f / (10*1024*1024*1024).to_f) * 100).freeze
-        @symbols = symbols.freeze
-        @limited = limited.freeze
-
-        @max_usage = (10*1024*1024*1024).freeze
-        @warn_usage = (7*1024*1024*1024).freeze
-        @scale = {
-            mb: 1024 * 1024,
-            gb: 1024 * 1024 * 1024,
-            tb: 1024 * 1024 * 1024 * 1024
-        }.freeze
+    def initialize(usage, symbols={ok: 'o', warn: '!', over: 'x', soon: '~', limited: '-'}, limited=false, hour=Time.now.hour)
+        @usage = usage
+        @percentage = ((usage.to_f / (MAX_USAGE).to_f) * 100).floor
+        @symbols = symbols
+        @limited = limited
+        @hour = hour
     end
 
     def sign
+        _sign = @symbols[:over] if 100 <= @percentage
+        _sign = @symbols[:warn] if @percentage.between?(70, 99)
+        _sign = @symbols[:ok] if @percentage.between?(0, 69)
+
         if @limited
-            @symbols[:limited]
-        elsif @percentage < 70.0
-            @symbols[:ok]
-        elsif @percentage < 100.0
-            @symbols[:warn]
-        else
-            @symbols[:over]
+            _sign = @symbols[:soon]
+            _sign = @symbols[:limited] if @hour.between?(18, 24) or @hour.between?(0, 2)
         end
+
+        _sign
     end
 
     def usage
@@ -99,31 +99,20 @@ class ViewState
     end
 
     def left
-        border_usage = @max_usage
-        border_usage = @warn_usage if @percentage < 70.0
+        border_usage = MAX_USAGE
+        border_usage = WARN_USAGE if @percentage < 70
 
         left_value = border_usage - @usage
-        value = (left_value/@scale[:mb].to_f).floor
+        value = (left_value/SCALE[:mb].to_f).floor
 
-        if value >= 0
-            "#{value}MB"
-        else
-            "0MB"
-        end
+        0 <= value ? "#{value}MB" : "0MB"
     end
 
     private
 
     def detect_scale(byte)
-        info = {size: 0, label: ''}
-
-        if @scale[:gb] > byte
-            info = {size: (byte/@scale[:mb].to_f).floor(2), label: 'MB'}
-        elsif @scale[:tb] > byte
-            info = {size: (byte/@scale[:gb].to_f).floor(2), label: 'GB'}
-        end
-
-        info
+        {size: (byte/SCALE[:mb].to_f).floor(2), label: 'MB'}.freeze if byte < SCALE[:gb]
+        {size: (byte/SCALE[:gb].to_f).floor(2), label: 'GB'}.freeze if byte < SCALE[:tb]
     end
 end
 
@@ -133,7 +122,13 @@ if transfer.has_error?
     puts "<!> connect to w06"
 
 else
-    symbols = {over: ":broken_heart:", warn: ":yellow_heart:", ok: ":green_heart:", limited: ":no_entry_sign:"}.freeze
+    symbols = {
+        over: ":broken_heart:",
+        warn: ":yellow_heart:",
+        ok: ":green_heart:",
+        limited: ":children_crossing:",
+        soon: ":purple_heart:"
+    }.freeze
 
     usage = transfer.today_usage
     vt = ViewState.new(usage, symbols, transfer.limited?)
@@ -148,7 +143,8 @@ else
     puts "---"
     puts "until today usage"
     puts "#{vt.sign}#{vt.usage}"
-    puts "--#{symbols[:limited]} restricted now"
+    puts "--#{symbols[:limited]} restricted between 18:00 and 03:00"
+    puts "--#{symbols[:soon]} restrictions relax until 18:00"
     puts "--#{symbols[:over]} over 10GB (100%)"
     puts "--#{symbols[:warn]} over  7GB ( 70%)"
     puts "--#{symbols[:ok]} less 7GB"
